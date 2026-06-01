@@ -1,0 +1,117 @@
+What is the Lorenz Attractor?
+
+The Lorenz attractor is a set of chaotic solutions to a system of three
+differential equations originally derived by meteorologist Edward Lorenz
+in 1963.
+
+He was trying to model atmospheric convection — specifically, how a thin
+layer of fluid behaves when heated from below and cooled from above
+(like the Earth’s atmosphere).
+
+What he discovered accidentally was something profound: a deterministic
+system (no randomness whatsoever) that produces completely unpredictable
+long-term behavior. This was one of the founding discoveries of chaos
+theory.
+
+The Equations
+
+dx/dt = σ(y − x)
+
+dy/dt = x(ρ − z) − y
+
+dz/dt = xy − βz
+
+Where: - x = convection rate - y = horizontal temperature variation - z
+= vertical temperature variation
+
+The Three Parameters
+
+1.  Sigma (σ) — Prandtl Number Controls the ratio of fluid viscosity to
+    thermal diffusivity. Think of it as how quickly momentum diffuses
+    compared to heat.
+
+At σ = 10, momentum spreads 10× faster than temperature through the
+fluid.
+
+Higher sigma = more viscous behavior relative to heat conduction.
+
+2.  Rho (ρ) — Rayleigh Number The most important parameter.
+
+Represents the temperature difference driving convection. It is the
+bifurcation parameter — the value where the system’s behavior
+fundamentally changes.
+
+-   ρ < 1: Fluid stays still, no convection
+-   1 < ρ < ~24.74: Stable convection rolls form
+-   ρ > ~24.74: Chaos emerges and the famous butterfly attractor appears
+
+3.  Beta (β) — Geometric Factor Related to the physical shape of the
+    convective rolls, specifically the aspect ratio of the fluid layer.
+
+It appears in the z-equation and damps the vertical temperature
+variation.
+
+The commonly used value 8/3 comes directly from the geometry of Lorenz’s
+simplified fluid model.
+
+Properties of the Attractor
+
+Deterministic Chaos The equations contain no randomness. Given identical
+starting conditions, the system always produces the same trajectory.
+
+However, two trajectories starting infinitesimally close together
+diverge exponentially fast. This phenomenon is known as the butterfly
+effect.
+
+Strange Attractor The trajectory never repeats, never crosses itself,
+and yet remains bounded within the butterfly-shaped region.
+
+It is neither periodic nor random. Instead, it forms a fractal structure
+with a non-integer dimension of approximately 2.06.
+
+Sensitivity to Initial Conditions Tiny changes in x, y, or z at time t =
+0 eventually produce dramatically different trajectories.
+
+This is one of the reasons weather forecasting becomes unreliable beyond
+roughly two weeks.
+
+Two Lobes The trajectory spirals around one wing for a while and then
+unpredictably switches to the other.
+
+The number of loops around each wing before switching has no repeating
+pattern and is chaotic.
+
+Real-Life Applications
+
+Meteorology - Foundation of chaos theory - Explains limits of long-range
+weather forecasting
+
+Engineering - Secure communications - Chaotic signals can mask and
+encrypt data transmissions
+
+Biology - Neural firing patterns - Cardiac arrhythmias - Population
+dynamics
+
+Economics - Chaotic models of markets and financial instability
+
+Cryptography - Chaos-based random number generators
+
+Fluid Dynamics - Turbulence modeling - Pipe flow and aerodynamics
+
+View Angles
+
+Azimuth (th) Horizontal rotation, similar to rotating a globe left or
+right.
+
+In a visualization program, arrow keys often modify this value to orbit
+around the attractor.
+
+Elevation (ph) Vertical tilt, similar to viewing the attractor from
+above (ph = 90°) or from the side (ph = 0°).
+
+A starting value around ph = 15° provides a slightly elevated view that
+clearly shows both wings.
+
+Together, azimuth and elevation allow free navigation around the 3D
+butterfly shape and help reveal its structure from different
+perspectives.
