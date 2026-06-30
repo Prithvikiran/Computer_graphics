@@ -1,0 +1,246 @@
+FINAL PROJECT
+Prithvikiran Premkumar
+CSCI 5229 - Final Project: "Groundskeeper"
+
+================================================================================
+  WHAT THE PROGRAM DOES
+================================================================================
+
+A 3D lawn-care simulator in which the user drives a riding mower around an
+undulating parametric yard, cuts the grass (visible mowed stripes appear on
+the terrain), and watches grass clippings spray from the mower deck via a true
+GPU particle system.  The project was designed to incorporate as many OpenGL
+and GLSL concepts from the course as possible into a single cohesive scene.
+
+Features at a glance:
+  - Drivable riding mower with steering, collision detection, and blade spin
+  - Mowing mechanic: a grid tracks cut/uncut cells; terrain colour updates live
+  - Parametric terrain with analytical normals (undulating sinusoidal surface)
+  - Day/night cycle with smooth sunrise/sunset sky colour transitions
+  - Mower headlight spotlight that activates automatically at night
+  - GLSL per-pixel lighting shader on terrain (terrain.vert / terrain.frag)
+  - Grass-clipping particle system (particle.vert / particle.frag) [GPU]
+  - GPU rain particle system (rain.vert / rain.frag) -- auto in Wet mode
+  - Waving flag: animated parametric surface with per-frame analytical normals
+  - Sprinkler with Bezier water arc (glMap1d / glEvalMesh1)
+  - Mouse object selection via colour picking; click -> Inspector
+  - Object Inspector mode: turntable + orbiting light for every scene object
+  - Surface normal indicators in Inspector
+  - Three fog modes (EXP / EXP2 / LINEAR)[ controlling fog density ] with fog-matched sky colour
+  - Five camera modes: ortho, perspective, first-person walk, follow, mower seat
+  - Display list for fence geometry
+  - Polygon offset for gravel path (no z-fighting with terrain)
+  - Full help overlay (h key)
+
+================================================================================
+  HOW TO BUILD AND RUN
+================================================================================
+
+    make
+    ./final
+
+   | press 'h' for the help overlay . |
+
+================================================================================
+  WHAT TO LOOK AT FIRST  
+================================================================================
+
+ 
+
+  1. Press 4, then W/S to drive the mower.  Watch grass stripes appear.
+     Particles spray from the deck in real time.
+
+  2. Press g to toggle the GLSL per-pixel shader ON/OFF on the terrain. 
+     The difference is immediately visible -- compare flat vs smooth lighting.
+
+  3. Press r to cycle terrain modes (Dry -> Moderate -> Wet).
+     In Wet mode, rain starts automatically (GPU particle system).
+     Press y to toggle rain manually at any time.
+
+  4. Press 2 for the best overhead view of the full yard.
+     Press f to toggle fog, then ; to cycle EXP / EXP2 / LINEAR fog modes.[ FOG DENSITY DEMONSTRATION]
+
+  5. Press i then n/N to cycle through all 10 objects in the Inspector.
+     Press v inside the Inspector to see surface normal indicators.
+     Click any object in the scene to jump directly to its Inspector entry.
+
+  6. Press h at any time for the full key-bindings help overlay.
+
+  7. Press space then , or . to sweep the sun manually through the day/night
+     cycle and watch the sky colour, headlight, and fog colour all change.
+
+
+
+================================================================================
+  WHY THIS DESERVES AN A  --  TECHNICAL HIGHLIGHTS
+================================================================================
+
+--- 1. GLSL PER-PIXEL LIGHTING SHADER (flag.vert,flag.frag) ---
+
+   
+  The waving flag is actually the better showcase for per-pixel shading --
+  the flag is a curved smoothly varying surface, so per-vertex lighting would
+  interpolate colour across each quad from just the corner normals, missing
+  the actual wave curvature between vertices.  Per-pixel shading uses the
+  analytically computed normal at every fragment, so lighting accurately
+  follows the wave shape everywhere.
+
+Other implementation of this concept for terrain :
+
+  The shader adds several features beyond basic per-pixel lighting:
+    - terrainMode uniform: Dry (yellowish tint), Moderate (green), Wet (dark)
+    - SunHeight uniform: diffuse intensity scales with sun elevation
+    - Time-of-day tinting: warm orange at dawn/dusk blended in the fragment shader
+    - Slope-based colour blend: steeper normals darken toward a soil colour
+    - Distance darkening: fragments further from camera fade slightly
+    - Mowed-cell colour: cut cells are passed as a vertex colour and blended
+      in the fragment shader so the mowing stripes integrate with the lighting
+
+
+
+--- 2. GPU RAIN PARTICLE SYSTEM (rain.vert / rain.frag) ---
+
+  The rain system uses the GPU-driven philosophy for 15,000 raindrops.
+  The CPU sets spawn XYZ and a phase offset once; the vertex shader computes
+  each drop's current Y position using a repeating fall equation:
+
+      current_y = FieldHeight - fmod((Time * FallSpeed + phase), FieldHeight)
+
+  All 15,000 drops cycle through their fall simultaneously on the GPU.
+  On the CPU, 15,000 position updates at 60 fps [ refresh rate ] would be 900,000 calculations
+  per second.  On the GPU they happen in a single parallel pass.  The rain
+  activates automatically when terrainMode is set to Wet (press r twice) or
+  can be toggled manually with y. [ NOTE IT CAN HANDLE MORE PARTICLES BUT THIS NUMBER WAS IDEAL FOR THIS SCENERIO]
+
+--- 3. WAVING FLAG -- ANIMATED PARAMETRIC SURFACE WITH ANALYTICAL NORMALS ---
+
+  The flag is a parametric cloth surface whose vertex Z displacement follows:
+
+      z = amplitude(x) * sin(freq*x - speed*t)
+
+  where amplitude tapers to zero at the pole so the cloth looks pinned.
+  Crucially, the surface normal is computed analytically each frame from the
+  partial derivative dz/dx -- the same technique used for the static terrain,
+  but applied to a moving surface.  This means normals are always mathematically
+  correct as the flag waves, so per-pixel lighting on the flag cloth (via
+  shader_flag) shades realistically at every pose.  Two-sided lighting is
+  enabled so the back face of the flag shades differently from the front.
+
+--- 4. COLLISION DETECTION WITH SLIDING RESPONSE ---
+
+  The mower collides against two obstacle types:
+    - Circular obstacles: trees, dustbins, crates, flagpole, sprinkler
+    - Rotated-box obstacles: house (45 deg) and shed (-30 deg)
+
+  Box collision transforms the mower into the obstacle's local frame for an
+  AABB test, then rotates the outward normal back to world space.  The response
+  is a SLIDE: only the penetrating component of the displacement vector is
+  cancelled, so the mower glances off smoothly rather than stopping dead.
+
+--- 6. MOUSE OBJECT SELECTION (COLOUR PICKING) ---
+
+  Each pickable object is drawn in a hidden colour-ID pass with its Inspector
+  index encoded in the alpha channel (glColor4ub(..., id)).  glReadPixels reads
+  a (2R+1)x(2R+1) box around the cursor for robustness with thin objects like
+  the fence rail and hedge.  Left-clicking a highlighted object jumps directly
+  into Inspector mode on that object.  Per-object hitbox sizes and rotations
+  match the real geometry so even rotated objects (house, shed) are reliably
+  selectable.
+
+
+================================================================================
+  KEY ADDITIONS FROM HW3
+================================================================================
+
+  Beyond adding new objects (flag, sprinkler, rain) and fixing the fence
+  floating bug (posts now placed at TerrainHeight()), the major additions are:
+
+  1.  Mowing mechanic -- MOW_N x MOW_N grid tracks cut/uncut cells
+  2.  GLSL per-pixel terrain shader with seasonal/weather modes
+  3.  GPU grass-clipping particle system (kinematic physics on GPU)
+  4.  GPU rain particle system (15,000 drops, no CPU position updates)
+  5.  Waving flag with per-frame analytical normals
+  6.  Sprinkler with Bezier water arc (glMap1d / glEvalMesh1)
+  7.  Mouse object selection via colour picking
+  8.  Help overlay (h key)
+  9.  Fog improvements: EXP / EXP2 / LINEAR cycling, fog-matched clear colour
+  10. Collision detection: circles + rotated boxes, sliding response
+
+
+================================================================================
+  COURSE CONCEPTS DEMONSTRATED
+================================================================================
+
+  Parametric surfaces          -- terrain (static) and flag (animated)
+  Transformation of normals    -- analytical normals on terrain and flag
+  GLSL vertex + fragment shdr  -- terrain, particles, rain, flag (4 programs)
+  GPU particle systems         -- grass clippings and rain
+  Parametric curves            -- Bezier sprinkler arc (glMap1d / glEvalMesh1)
+  Display lists                -- fence geometry compiled once
+  Polygon offset               -- gravel path, pick boxes
+  Anti-aliased lines           -- Bezier arc, normal indicators
+  Fog (EXP / EXP2 / LINEAR)    -- three modes, fog-matched sky colour
+  Colour-based picking         -- mouse object selection
+  Spotlight                    -- mower headlight (GL_LIGHT1, night only)
+  Day/night lighting           -- time-of-day diffuse tint, ambient scale
+  Texture mapping              -- 12 BMP textures, modulate mode
+  Alpha blending               -- particles, Bezier arc, help overlay
+  Two-sided lighting           -- flag back face
+  First-person camera          -- walk mode with boundary clamps
+  Multiple camera modes        -- 5 modes including follow and seat
+
+
+================================================================================
+  KEY BINDINGS  (full list -- also available in-program with h)
+================================================================================
+
+  1-5         View modes: Ortho / Persp / Walk / Follow Mower / Mower Seat
+  m           Cycle view modes
+  WASD        Drive mower (modes 4-5) or walk (mode 3)
+  arrows      Look around (mode 3) or orbit camera (modes 1-2)
+  PgUp/PgDn   Zoom (overhead modes)
+  space       Pause / resume sun
+  , / .       Sweep sun azimuth manually
+  [ / ]       Lower / raise sun elevation
+  l           Toggle lighting
+  t           Toggle textures
+  f           Toggle fog
+  ;           Cycle fog mode: EXP -> EXP2 -> LINEAR
+  g           Toggle GLSL per-pixel terrain shader
+  p           Toggle GPU grass-clipping particles
+  r           Cycle terrain mode: Dry -> Moderate -> Wet
+  y           Toggle rain (auto-enabled in Wet mode)
+  k           Toggle sprinkler on / off
+  i           Enter / exit Inspector mode
+  n / N       Cycle Inspector objects (forward / backward)
+  v           Toggle surface normal indicators (Inspector only)
+  h           Toggle help overlay
+  b           Toggle axes
+  + / -       Increase / decrease field of view
+  0           Reset everything to defaults
+  ESC / q     Quit
+
+
+================================================================================
+  CODE REUSE / ACKNOWLEDGMENTS
+================================================================================
+
+    [hw3]   primitives, Dustbin, Fence, view modes, Lighting, sun  (hw3.c/hw2.c)
+    [ex15]  textured cube normals and tex coords
+    [ex20]  textured cylinder radial cap mapping
+    [ex25]  shader utilities: ReadText, CreateShader, CreateShaderProg
+    [ex31]  colour-based mouse object selection (picking) technique
+    [ex35]  1D Bezier evaluator (glMap1d / glEvalMesh1) for sprinkler arc 
+
+  CSCIx229 library: Fatal, ErrCheck, Print, LoadTexBMP,
+  make_textures.py: extended from hw3
+  AI (Claude): Makefile, README, function parameter brainstorming,troubleshooting
+
+
+================================================================================
+  TIME SPENT
+================================================================================
+
+  Approximately one full week.  Significant time on ideation, then
+  implementation, then parameter tuning (terrain undulation, particle
+  velocities, shader tint values, collision radii ETC ), understanding concepts of shaders , normals etc .
